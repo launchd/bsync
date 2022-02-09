@@ -181,4 +181,4 @@ elif(userChoice == '2'):
             print("No new songs found for download, you have them all already.")
 
 print("This window will automatically close in 30 seconds..")
-#time.sleep(30)
+time.sleep(30)
