@@ -15,7 +15,7 @@ Use your friends' .txt files to download their songs.
 ### Sharing your ID text file
 
 1. Run bsync.exe and select option 1
-2. Enter the filepath to your CustomLevels Folder 
+2. Enter the filepath to your CustomLevels Folder
 (ex: C:\Program Files\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels)
 3. Enter your name to be used in the .txt filename
 4. Share the text file that was generated in the bsync folder with your friends (ex: ids_{your name}_{timestamp}.txt)
@@ -25,6 +25,11 @@ Use your friends' .txt files to download their songs.
 
 1. Move the .txt files of IDs into the folder with bsync.exe
 2. Run bsync.exe and select option 2
-3. Enter the filepath to your CustomLevels Folder, this is to avoid duplicate songs
+3. Enter the filepath to your CustomLevels Folder
 4. Wait for the downloads to finish, the zips will automatically unzip into the CustomLevels folder.
 Zips are saved to downloaded_zips folder, this folder can be deleted after the program is finished
+
+## Download
+
+You can [download](https://github.com/launchd/bsync/releases/download/v1.0.0/bsync-v1.0.0.zip) the latest runnable version of BSync for Windows
+
