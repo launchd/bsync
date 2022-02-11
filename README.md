@@ -31,5 +31,9 @@ Zips are saved to downloaded_zips folder, this folder can be deleted after the p
 
 ## Download
 
-You can [download](https://github.com/launchd/bsync/releases/download/v1.0.0/bsync-v1.0.0.zip) the latest runnable version of BSync for Windows
+You can [download](https://github.com/launchd/bsync/releases/download/v1.0.0/bsync-1.0.1.zip) the latest runnable version of BSync for Windows
+
+## Common Issues
+
+1. Some songs have characters in different languages than your PC. In this case, the download will partially fail. You will notice .tmp files in the program directory. You can change the .tmp extension to .zip and still open the file. The filename will also contain the ID of the song as it appears on bsaber.com/songs/{song ID here}. 
 
