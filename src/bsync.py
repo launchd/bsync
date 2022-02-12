@@ -4,14 +4,28 @@ from datetime import datetime
 
 # Config
 zipDirectory = 'downloaded_zips'
+logFile = 'log.txt'
 debug = False
 userChoice = '2'
+logFileContents = '\n--------------------------------------------'
+testString = ' '
 
 # Methods #
-# Log progress
-def log(str, isError):
-    if(isError and debug):
-        print(str)
+#
+# Adds messages to the log
+def log(str):
+    global logFileContents
+    logFileContents += "\n" + str
+#
+# Writes all the logs to a file before program closes
+def writeLogFile():
+    dt = datetime.now()
+    ts = str(datetime.timestamp(dt))
+    global logFileContents
+    logFileContents += '\n[' + ts + ']]\n--------------------------------------------'
+
+    with open(logFile, 'a') as file:
+            file.write(logFileContents)
 #
 # Get song IDs from zip downloads folder to prevent duplicate downloads
 def getIDsFromZipFolder():
@@ -29,11 +43,12 @@ def getIDsFromZipFolder():
 # Check for .tmp files left over in the programs folder
 def checkForFailedDownloads():
     files = os.listdir()
-    print()
+    print() # Adds a spacer line
     errorFound = False
     for f in files:
         if(os.path.isfile(f) and f[-4:] == '.tmp'):
             print("Error: Failed to download file:", f)
+            log("Failed to download " + f)
             errorFound = True
         
     if(errorFound):
@@ -43,37 +58,47 @@ def checkForFailedDownloads():
 def getIDsFromFolder(cldir):
     if(cldir[:-1] != '\\'):
         cldir += '\\'
-    songFolders = os.listdir(cldir)
-    songs = []
-    idsOut = ''
-    reSongID = re.compile('(^[a-zA-z0-9]+)')
-    for song in songFolders:            # Loop through files and folders
-        if(os.path.isdir(cldir + song)):# Choose only folders
-            if(debug): print(song)   
-            regMatch = reSongID.match(song)
-            songId = str(regMatch.group())
-            songName = song[regMatch.end():].strip()
-            songs.append([songId, songName]) # Format songs into 2D array with ID/Name separate
-    # Parse and Print Output for Sharing
-    idsOut = ''
-    for s in songs:
-        if(debug): print(s[0])
-        idsOut += s[0] + ','
-    if(debug): print(idsOut)
+    try:
+        songFolders = os.listdir(cldir)
+        songs = []
+        idsOut = ''
+        reSongID = re.compile('(^[a-zA-z0-9]+)')
+        for song in songFolders:            # Loop through files and folders
+            if(os.path.isdir(cldir + song)):# Choose only folders
+                if(debug): print(song)   
+                regMatch = reSongID.match(song)
+                songId = str(regMatch.group())
+                songName = song[regMatch.end():].strip()
+                songs.append([songId, songName]) # Format songs into 2D array with ID/Name separate
+        # Parse and Print Output for Sharing
+        idsOut = ''
+        for s in songs:
+            if(debug): print(s[0])
+            idsOut += s[0] + ','
+        if(debug): print(idsOut)
 
-    return idsOut
+        return idsOut
+    except:
+        print('Please enter a valid filepath to the CustomLevels folder')
+        log('Invalid filepath to CustomLevels folder (getIDsFromFolder)')
 #
 # Save all given IDs to a CSV text file
 def exportIDs(ids):
-    dt = datetime.now()
-    ts = str(datetime.timestamp(dt))
+    if ids is None:
+        print("No IDs found, did you enter a valid file path?")
+        log("No IDs found, check CustomLevels file path (exportIDs)")
+    else:
+        dt = datetime.now()
+        ts = str(datetime.timestamp(dt))
 
-    userName = 'x'    
-    if(not debug): userName = input('Enter your name:')
-    filename = 'ids_' + userName + '_' + ts + '.txt'
-    with open(filename, 'w') as file:
-        file.write(ids[:-1])
-        print('Ids written to file: ' + filename)
+        userName = 'x'    
+        if(not debug): userName = input('Enter your name:')
+        filename = 'ids_' + userName + '_' + ts + '.txt'
+        with open(filename, 'w') as file:
+            file.write(ids[:-1])
+            log('Ids written to file: ' + filename)
+            print('Ids written to file: ' + filename)    
+        
 #
 # Gets All IDs from the ids_*.txt files
 def importIDs():
@@ -84,6 +109,7 @@ def importIDs():
             if debug: print(f)
             idFiles.append(f)
             print("Imported IDs from:", f)
+            log("Imported IDs from:", f)
     # Parse ID input
     ids = []
     for f in idFiles:        
@@ -95,6 +121,7 @@ def importIDs():
                 ids.append(id)
     if len(ids) == 0:
         print("Error: No IDs could be imported, are you text files in the same folder as bsync.exe?")
+        log("Error: No IDs could be imported (importIDs)")
     return ids 
 #
 # Download all songs
@@ -111,10 +138,11 @@ def downloadSongs(idsToDownload, localIds):
         if i in localIds:
             duplicates += 1
     print("Maximum songs to be downloaded:", len(idsToDownload) - duplicates)
+    log("IDs Found: " + idsToDownload + ", Duplicates: " + duplicates)
     
     for i in idsToDownload:        
         if i not in localIds:
-            print(i)
+            print(' [' + i + ']')
             url = 'https://api.beatsaver.com/download/key/' + i
             #if (debug): print(url)
             zipFile = str(os.path.join(str(os.getcwd()), zipDirectory, i+'.zip'))
@@ -130,15 +158,15 @@ def downloadSongs(idsToDownload, localIds):
                         os.rename(zipFile, os.path.join(zipDirectory, zipFile))       
                         songsDownloaded += 1         
                     else:
-                        log("Error: Zip file already exists " + i + '.zip', True)
+                        log("Error: Zip file already exists " + i + '.zip (downloadSongs)')
                         os.remove(zipFile)
                     time.sleep(1)
                 except:
-                   log("Error: Unable to download song: " + url, True)
+                   log("Error: Unable to download song: " + url + ' (downloadSongs)')
             else:
                 print("Warning: Skipping download, duplicate zip file:", i)
         else:
-            log('Warning: Already own song: ' + i, True)
+            log('Warning: Already own song: ' + i + ' (downloadSongs)')
     checkForFailedDownloads()
     return songsDownloaded
 #
@@ -148,11 +176,12 @@ def getCLFolder():
     #cldir = "D:\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\\"
     #cldir = '/home/chris/bsync/CustomLevels/'
     if(debug): print(cldir)
+    log('CustomLevels Folder: ' + cldir) 
     return cldir
 #
 # Unzip songs
 def unzipSongs(cldir):
-    log("Unzipping files now...", False)
+    log("Unzipping files now (unzipSongs)")
     zipFiles = []
     files = os.listdir(zipDirectory)    
     for f in files:
@@ -166,7 +195,7 @@ def unzipSongs(cldir):
                     os.mkdir(songDir)
                     zip_ref.extractall(songDir)
                 else:
-                    log("Error: Folder already exists (" + f + ")", True)
+                    log("Error: Folder already exists (" + f + ") (unzipSongs)")
 
 # Start of Menu #
 print()
@@ -198,9 +227,11 @@ elif(userChoice == '2'):
         if(songsDownloaded > 0):
             # Unzip
             print("Downloaded Songs:", songsDownloaded)
+            log("Downloaded " + songsDownloaded + " songs (userChoice=2)")
             unzipSongs(cldir)
         else:
             print('------------------------')
             print("No new songs found for download, you have them all already.")
-
+            log("No songs found for download (userChoice=2)")
+writeLogFile()
 input("--- Press enter to close this window ---")
