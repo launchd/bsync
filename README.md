@@ -37,7 +37,7 @@ Zips are saved to downloaded_zips folder, this folder can be deleted after the p
 
 ## Download
 
-[Download v1.2.1](https://github.com/launchd/bsync/releases/download/v1.2.1/bsync-v1.2.1.zip) - the latest runnable version
+[Download v1.2.1](https://github.com/launchd/bsync/releases/download/v1.2.1/bsync-v1.2.1.zip) - the latest version
 
 ## Common Issues
 
