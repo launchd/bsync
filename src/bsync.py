@@ -1,6 +1,6 @@
 import os, time, wget, zipfile, re
 from datetime import datetime
-# TODO add log file and fix 
+# TODO add config file 
 
 # Config
 zipDirectory = 'downloaded_zips'
@@ -109,7 +109,7 @@ def importIDs():
             if debug: print(f)
             idFiles.append(f)
             print("Imported IDs from:", f)
-            log("Imported IDs from:", f)
+            log("Imported IDs from:")
     # Parse ID input
     ids = []
     for f in idFiles:        
@@ -216,7 +216,7 @@ if(userChoice == '1'):
     exportIDs(songIDs)
     
 elif(userChoice == '2'):
-    log('Retrieving IDs...', False)
+    log('Retrieving IDs...')
     ids = importIDs()
     # If there are songs to get from .txt files
     if len(ids) > 0:
