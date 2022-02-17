@@ -1,21 +1,52 @@
-import os, time, wget, zipfile, re
+import os, time, wget, zipfile, re, json
 from datetime import datetime
 # TODO add config file 
 
 # Config
-zipDirectory = 'downloaded_zips'
+dirZipDownloads = 'downloaded_zips'
+dirCustomlevels = ''
+CONFIG_FILE = 'config.txt'
 logFile = 'log.txt'
 debug = False
 userChoice = '2'
 logFileContents = '\n--------------------------------------------'
-testString = ' '
 
 # Methods #
+#
+# Read Config
+def readConfigFile():
+    global dirZipDownloads, dirCustomlevels, logFile, debug
+    try:
+        with open(CONFIG_FILE, "r") as read_file:
+            data = json.load(read_file)
+        dirCustomlevels = data["config"]["CustomLevels"]
+        dirZipDownloads = data["config"]["dirZipDownloads"]
+        logFile = data["config"]["logFile"]
+        debug = bool(data["config"]["debug"])
+    except:
+        log('Error: Unable to open ' + CONFIG_FILE + ' (readConfigFile)')
+#
+# Write Config
+def writeConfigFile():
+    print('Writing config file')
+    log('Writing config file to ')
+    config = {
+        "config": {
+            "CustomLevels" : dirCustomlevels,
+            "dirZipDownloads" : dirZipDownloads,
+            "logFile" : logFile,
+            "debug" : debug,
+        }
+    }
+    with open(CONFIG_FILE, 'w') as file:
+        json.dump(config, file, indent=2)
+
 #
 # Adds messages to the log
 def log(str):
     global logFileContents
     logFileContents += "\n" + str
+        
 #
 # Writes all the logs to a file before program closes
 def writeLogFile():
@@ -29,7 +60,7 @@ def writeLogFile():
 #
 # Get song IDs from zip downloads folder to prevent duplicate downloads
 def getIDsFromZipFolder():
-    songZips = os.listdir(zipDirectory)
+    songZips = os.listdir(dirZipDownloads)
     
     songsIds = []
     reSongID = re.compile('(^[a-zA-z0-9]+)')
@@ -131,21 +162,21 @@ def downloadSongs(idsToDownload, localIds):
     songsDownloaded = 0
     duplicates = 0
 
-    if(not os.path.isdir(zipDirectory)):
-        os.mkdir(zipDirectory)
+    if(not os.path.isdir(dirZipDownloads)):
+        os.mkdir(dirZipDownloads)
     
     for i in idsToDownload:
         if i in localIds:
             duplicates += 1
     print("Maximum songs to be downloaded:", len(idsToDownload) - duplicates)
-    log("IDs Found: " + idsToDownload + ", Duplicates: " + duplicates)
+    log("IDs Found: " + str(len(idsToDownload)) + ", Duplicates: " + str(duplicates))
     
     for i in idsToDownload:        
         if i not in localIds:
             print(' [' + i + ']')
             url = 'https://api.beatsaver.com/download/key/' + i
             #if (debug): print(url)
-            zipFile = str(os.path.join(str(os.getcwd()), zipDirectory, i+'.zip'))
+            zipFile = str(os.path.join(str(os.getcwd()), dirZipDownloads, i+'.zip'))
            
             #Get already downloaded songs to prevent duplicate songs
             zipIDs = getIDsFromZipFolder()            
@@ -154,8 +185,8 @@ def downloadSongs(idsToDownload, localIds):
                     zipFile = wget.download(url)
 
                     # Move song into zip folder if it doesn't already exist
-                    if(not os.path.isfile(os.path.join(zipDirectory, zipFile))):
-                        os.rename(zipFile, os.path.join(zipDirectory, zipFile))       
+                    if(not os.path.isfile(os.path.join(dirZipDownloads, zipFile))):
+                        os.rename(zipFile, os.path.join(dirZipDownloads, zipFile))       
                         songsDownloaded += 1         
                     else:
                         log("Error: Zip file already exists " + i + '.zip (downloadSongs)')
@@ -172,23 +203,25 @@ def downloadSongs(idsToDownload, localIds):
 #
 # Get CustomLevels file path from user
 def getCLFolder():
-    cldir = input("Enter filepath for Custom Levels Folder:")
-    #cldir = "D:\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\\"
-    #cldir = '/home/chris/bsync/CustomLevels/'
-    if(debug): print(cldir)
-    log('CustomLevels Folder: ' + cldir) 
-    return cldir
+    global dirCustomlevels
+    if(not dirCustomlevels):
+        dirCustomlevels = input("Enter filepath for Custom Levels Folder:")        
+        #cldir = "D:\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\"
+        #cldir = '/home/user/bsync/CustomLevels/'
+        if(debug): print(dirCustomlevels)
+        log('CustomLevels Folder: ' + dirCustomlevels) 
+    return dirCustomlevels
 #
 # Unzip songs
 def unzipSongs(cldir):
     log("Unzipping files now (unzipSongs)")
     zipFiles = []
-    files = os.listdir(zipDirectory)    
+    files = os.listdir(dirZipDownloads)    
     for f in files:
         if(f[-4:] == '.zip'):
             #if debug: print('zip: ' + f)
                        
-            with zipfile.ZipFile(os.path.join(zipDirectory, f), 'r') as zip_ref:
+            with zipfile.ZipFile(os.path.join(dirZipDownloads, f), 'r') as zip_ref:
                 f = f.replace('.zip', '')
                 songDir = os.path.join(cldir, f)
                 if(not os.path.isdir(songDir)):              
@@ -196,18 +229,24 @@ def unzipSongs(cldir):
                     zip_ref.extractall(songDir)
                 else:
                     log("Error: Folder already exists (" + f + ") (unzipSongs)")
+### MAIN ###
+
+# Get the config file if it exists
+readConfigFile()
 
 # Start of Menu #
 print()
 print("\t\t-- BSync Menu --")
+print("0. Set CustomLevels folder in config.txt")
 print("1. Export your song IDs to a text file for sharing.")
 print("2. Download songs from IDs in text files you've saved.")
 
 if(not debug):
-    userChoice = input("Choose 1 or 2 and press enter:")
+    userChoice = input("Enter the number of your menu choice:")
+
 
 # Handle Menu Options
-if(userChoice == '1'):
+if(userChoice == '1'): # Export IDs to text file
     # Get CustomLevels file path
     cldir = getCLFolder()
     # Get Song IDs
@@ -215,7 +254,7 @@ if(userChoice == '1'):
     # Write to file
     exportIDs(songIDs)
     
-elif(userChoice == '2'):
+elif(userChoice == '2'): # Download songs
     log('Retrieving IDs...')
     ids = importIDs()
     # If there are songs to get from .txt files
@@ -227,11 +266,16 @@ elif(userChoice == '2'):
         if(songsDownloaded > 0):
             # Unzip
             print("Downloaded Songs:", songsDownloaded)
-            log("Downloaded " + songsDownloaded + " songs (userChoice=2)")
+            log("Downloaded " + str(songsDownloaded) + " songs (userChoice=2)")
             unzipSongs(cldir)
         else:
             print('------------------------')
             print("No new songs found for download, you have them all already.")
             log("No songs found for download (userChoice=2)")
+elif(userChoice == '0'):
+    dirCustomlevels = ''
+    dirCustomlevels = getCLFolder()
+    
 writeLogFile()
+writeConfigFile()
 input("--- Press enter to close this window ---")
