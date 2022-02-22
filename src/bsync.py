@@ -1,6 +1,6 @@
-import os, time, wget, zipfile, re, json
+import os, time, requests, zipfile, re, json
 from datetime import datetime
-# TODO add config file 
+# TODO allow menu to loop
 
 # Config
 dirZipDownloads = 'downloaded_zips'
@@ -8,7 +8,7 @@ dirCustomlevels = ''
 CONFIG_FILE = 'config.txt'
 logFile = 'log.txt'
 debug = False
-userChoice = '2'
+userChoice = '0'
 logFileContents = '\n--------------------------------------------'
 
 # Methods #
@@ -28,8 +28,8 @@ def readConfigFile():
 #
 # Write Config
 def writeConfigFile():
-    print('Writing config file')
-    log('Writing config file to ')
+    print('Writing config file to', logFile)
+    log('Writing config file to ' + logFile)
     config = {
         "config": {
             "CustomLevels" : dirCustomlevels,
@@ -168,13 +168,12 @@ def downloadSongs(idsToDownload, localIds):
     for i in idsToDownload:
         if i in localIds:
             duplicates += 1
-    print("Maximum songs to be downloaded:", len(idsToDownload) - duplicates)
+    print("Maximum songs to be downloaded:", len(idsToDownload) - duplicates, "Duplicates:", duplicates)
     log("IDs Found: " + str(len(idsToDownload)) + ", Duplicates: " + str(duplicates))
     
     for i in idsToDownload:        
         if i not in localIds:
-            print(' [' + i + ']')
-            url = 'https://api.beatsaver.com/download/key/' + i
+            print('Downloading ID: ', i, '(',idsToDownload.index(i)+1, '/', len(idsToDownload), ')')
             #if (debug): print(url)
             zipFile = str(os.path.join(str(os.getcwd()), dirZipDownloads, i+'.zip'))
            
@@ -182,18 +181,30 @@ def downloadSongs(idsToDownload, localIds):
             zipIDs = getIDsFromZipFolder()            
             if(i not in zipIDs):
                 try:
-                    zipFile = wget.download(url)
-
-                    # Move song into zip folder if it doesn't already exist
-                    if(not os.path.isfile(os.path.join(dirZipDownloads, zipFile))):
-                        os.rename(zipFile, os.path.join(dirZipDownloads, zipFile))       
-                        songsDownloaded += 1         
+                    url = 'https://api.beatsaver.com/download/key/' + i
+                    zipFileName = i + '.zip'
+                    downloadRequest = requests.get(url)  
+                    open(zipFileName, 'wb').write(downloadRequest.content)  
+                    contentDispo = downloadRequest.headers.get('Content-Disposition') 
+                    if(contentDispo is not None):
+                        songNameStart = contentDispo.index('"')
+                        songName = contentDispo[songNameStart+1:-1]
+                        print(songName)
+                        if(not os.path.isfile(os.path.join(dirZipDownloads, zipFile))):
+                            os.rename(zipFileName, str(os.path.join(str(os.getcwd()), dirZipDownloads, songName)))                        
+                            songsDownloaded += 1    
+                        else:
+                            log("Error: Zip file already exists " + songName + '.zip (downloadSongs)')
+                            os.remove(zipFileName)
                     else:
-                        log("Error: Zip file already exists " + i + '.zip (downloadSongs)')
-                        os.remove(zipFile)
-                    time.sleep(1)
-                except:
-                   log("Error: Unable to download song: " + url + ' (downloadSongs)')
+                        print("Failed to download song, ID not found", i)
+                        log("Error: Failed to download song, ID not found: " + i)
+                        os.remove(zipFileName)
+                except Exception as e:
+                    print("Failed to download song:", i)
+                    log("Failed to download song: " + i)
+                    print(e)
+                    log(e)                    
             else:
                 print("Warning: Skipping download, duplicate zip file:", i)
         else:
@@ -226,6 +237,7 @@ def unzipSongs(cldir):
                 songDir = os.path.join(cldir, f)
                 if(not os.path.isdir(songDir)):              
                     os.mkdir(songDir)
+                    print('Extracting ' + f)
                     zip_ref.extractall(songDir)
                 else:
                     log("Error: Folder already exists (" + f + ") (unzipSongs)")
